@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Notaris - Clinical Note Data Extraction{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Accelerate Clinical Research</h1>
+    <p>Notaris provides structured research data extraction from multi-format clinical notes in seconds, giving you high quality data with fully transparent schemas.</p>
+    <a href="/notes/batch" class="btn hero-btn">Start New Extraction</a>
+</div>
+
+<div class="features-grid">
+    <div class="note-card feature-card">
+        <h3 class="feature-heading">Batch Uploads</h3>
+        <p class="feature-text">Paste piles of raw notes directly, or securely upload batch CSV files.</p>
+    </div>
+    <div class="note-card feature-card">
+        <h3 class="feature-heading">Custom Schemas</h3>
+        <p class="feature-text">Define specifically what you need to extract and guarantee typed consistency.</p>
+    </div>
+    <div class="note-card feature-card">
+        <h3 class="feature-heading">Spreadsheet Ready</h3>
+        <p class="feature-text">Download fully structured datasets with correct clinical formatting right away.</p>
+    </div>
+</div>
+{% endblock %}
