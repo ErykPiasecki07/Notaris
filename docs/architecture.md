@@ -10,6 +10,8 @@
 | Background work | In-process task runner for demo scope | Enough for batch extraction without introducing queue infrastructure. |
 | AI provider integration | Provider adapter interface | Allows mock extraction, local fixtures, or an external LLM provider. |
 | Export | pandas or standard CSV utilities | Straightforward spreadsheet-ready output. |
+| Package and environment management | uv | Fast, reproducible Python dependency management and local command execution. |
+| Linting and formatting | Ruff | Single fast tool for Python linting and formatting. |
 | Tests | pytest | Standard Python testing workflow. |
 
 
