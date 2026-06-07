@@ -14,5 +14,8 @@ def test_health_check_returns_ok() -> None:
 
 async def _get_health_response() -> httpx.Response:
     transport = httpx.ASGITransport(app=create_app())
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
         return await client.get("/health")

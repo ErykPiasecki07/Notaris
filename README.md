@@ -29,3 +29,40 @@ The resulting output is structured data that can be reviewed, corrected, exporte
 3. Run AI-assisted extraction across the note batch.
 4. Review extracted values against the original text.
 5. Export the result as a spreadsheet-ready table.
+
+## Development
+
+Notaris is a Python FastAPI application managed with `uv`.
+
+Install dependencies:
+
+```sh
+uv sync --dev
+```
+
+Run the test suite:
+
+```sh
+uv run pytest
+```
+
+Run the local development server:
+
+```sh
+uv run notaris
+```
+
+The app starts at `http://127.0.0.1:8000`. A health check is available at
+`http://127.0.0.1:8000/health`.
+
+## Domain Models
+
+The core domain layer defines typed Pydantic models for:
+
+- `ClinicalNote`: source text plus optional metadata.
+- `ExtractionField`: a named field with a description, supported type, and optional constraints.
+- `ExtractionSchema`: a collection of extraction fields.
+- `ExtractionResult`: extracted values associated with a source note.
+
+Supported extraction field types are `string`, `integer`, `number`, `boolean`, and
+`date`.
