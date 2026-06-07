@@ -1,0 +1,3 @@
+Problem: Researchers extracting data from case reports or EHR exports face free-text notes — they need structured fields (diagnosis, medications, lab values, outcomes) but manual extraction is slow and inconsistent.
+
+Solution: Upload/paste a batch of clinical notes → AI extracts a configurable schema → outputs a spreadsheet-ready table. The researcher defines which fields matter (e.g. age, primary diagnosis, HbA1c value, drug name, outcome at 6 months).
