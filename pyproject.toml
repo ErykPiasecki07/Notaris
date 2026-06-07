@@ -43,6 +43,7 @@ notaris = ["templates/*.html"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "--cov=notaris --cov-branch --cov-report=term-missing --cov-fail-under=80"
 
 [tool.ruff]
 line-length = 88
