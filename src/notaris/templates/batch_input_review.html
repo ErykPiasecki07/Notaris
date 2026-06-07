@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Review Parsed Notes - Notaris{% endblock %}
+
+{% block content %}
+<h2>Review Parsed Notes</h2>
+<p>Successfully parsed {{ notes|length }} notes.</p>
+
+<div class="notes-list">
+    {% for note in notes %}
+    <div class="note-card">
+        <h3>Note #{{ loop.index }}</h3>
+        <pre>{{ note.source_text }}</pre>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Assuming T-005 will handle going forward -->
+<a href="/notes/batch"><button>Back</button></a>
+<form action="/schema/new" method="get" class="inline-form">
+    <!-- In a real demo, we'd pass these note IDs or keep them in session. For now just show them. -->
+    <button type="submit">Continue to Schema</button>
+</form>
+{% endblock %}

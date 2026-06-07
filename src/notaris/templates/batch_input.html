@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Input - Notaris{% endblock %}
+
+{% block content %}
+<h2>Batch Input Notes</h2>
+
+<form action="/notes/batch" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="pasted_notes">Paste Notes (separate by double empty line):</label>
+        <textarea id="pasted_notes" name="pasted_notes" rows="10"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="upload_file">Or Upload File (.txt or .csv):</label>
+        <input type="file" id="upload_file" name="upload_file" accept=".txt,.csv">
+        <small>CSV should have a "source_text" column. TXT should have notes separated by double empty line.</small>
+    </div>
+
+    <button type="submit">Submit Notes</button>
+</form>
+{% endblock %}
