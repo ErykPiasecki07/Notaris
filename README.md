@@ -54,15 +54,3 @@ uv run notaris
 
 The app starts at `http://127.0.0.1:8000`. A health check is available at
 `http://127.0.0.1:8000/health`.
-
-## Domain Models
-
-The core domain layer defines typed Pydantic models for:
-
-- `ClinicalNote`: source text plus optional metadata.
-- `ExtractionField`: a named field with a description, supported type, and optional constraints.
-- `ExtractionSchema`: a collection of extraction fields.
-- `ExtractionResult`: extracted values associated with a source note.
-
-Supported extraction field types are `string`, `integer`, `number`, `boolean`, and
-`date`.
