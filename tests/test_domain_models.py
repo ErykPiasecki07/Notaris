@@ -86,3 +86,13 @@ def test_extraction_result_represents_extracted_values_for_a_note() -> None:
 
     assert result.note == note
     assert result.values == {"Age": 42}
+
+
+def test_extraction_field_rejects_empty_description() -> None:
+    with pytest.raises(ValidationError):
+        ExtractionField(name="Field", description="   ", type="string")
+
+
+def test_extraction_schema_rejects_empty_fields() -> None:
+    with pytest.raises(ValidationError):
+        ExtractionSchema(fields=[])
