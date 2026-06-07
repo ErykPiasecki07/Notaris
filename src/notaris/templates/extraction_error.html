@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Extraction Error - Notaris{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h2>Extraction Error</h2>
+    <div class="error">
+        <ul>
+        {% for error in errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    <div class="error-actions">
+        <a href="/notes/batch" class="btn btn-secondary">Submit Notes</a>
+        <a href="/schema/new" class="btn btn-secondary">Define Schema</a>
+        <a href="/" class="btn">Back to Home</a>
+    </div>
+</div>
+{% endblock %}
