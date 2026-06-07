@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Extraction Results - Notaris{% endblock %}
+
+{% block content %}
+<div class="results-header">
+    <h2>Extraction Results</h2>
+    <div class="results-meta">
+        <span class="results-badge badge-success">{{ status }}</span>
+        <span class="results-count">{{ note_count }} note{{ "s" if note_count != 1 else "" }} processed</span>
+        <span class="results-separator">&bull;</span>
+        <span class="results-count">{{ schema.fields|length }} field{{ "s" if schema.fields|length != 1 else "" }} extracted</span>
+    </div>
+</div>
+
+<div class="results-table-wrapper">
+    <table class="results-table" id="extraction-results-table">
+        <thead>
+            <tr>
+                <th class="col-index">#</th>
+                {% for col in table.columns %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table.rows %}
+            <tr>
+                <td class="col-index">{{ row._note_index }}</td>
+                {% for col in table.columns %}
+                <td>
+                    {% if row[col] is none %}
+                        <span class="value-none">&mdash;</span>
+                    {% elif row[col] is sameas true %}
+                        <span class="value-bool value-true">Yes</span>
+                    {% elif row[col] is sameas false %}
+                        <span class="value-bool value-false">No</span>
+                    {% else %}
+                        {{ row[col] }}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="results-actions">
+    <a href="/notes/batch" class="btn btn-secondary">&larr; New Notes</a>
+    <a href="/schema/new" class="btn btn-secondary">Edit Schema</a>
+    <form action="/extraction/run" method="post" class="inline-form">
+        <button type="submit" class="btn">Re-run Extraction &#x21bb;</button>
+    </form>
+</div>
+{% endblock %}

@@ -9,8 +9,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from notaris.domain.models import ExtractionSchema
+from notaris.domain.models import ClinicalNote, ExtractionSchema
 from notaris.domain.parsing import parse_csv_batch, parse_text_batch
+from notaris.services.extraction import BatchExtractionService
 
 router = APIRouter()
 
@@ -79,6 +80,9 @@ async def process_batch_input(
             request=request, name="batch_input.html", context={"errors": errors}
         )
 
+    # Persist parsed notes in session for downstream extraction
+    request.session["notes"] = [note.model_dump() for note in notes]
+
     return templates.TemplateResponse(
         request=request, name="batch_input_review.html", context={"notes": notes}
     )
@@ -138,3 +142,92 @@ async def save_schema(
                 "schema": request.session.get("schema", {}),
             },
         )
+
+
+@router.post("/extraction/run", response_class=HTMLResponse)
+async def run_extraction(request: Request):
+    """Run batch extraction using session-stored notes and schema."""
+    notes_data = request.session.get("notes")
+    schema_data = request.session.get("schema")
+
+    errors = []
+    if not notes_data:
+        errors.append("No notes found. Please submit notes first.")
+    if not schema_data:
+        errors.append("No schema defined. Please create a schema first.")
+
+    if errors:
+        return templates.TemplateResponse(
+            request=request,
+            name="extraction_error.html",
+            context={"errors": errors},
+        )
+
+    notes = [ClinicalNote(**n) for n in notes_data]
+    schema = ExtractionSchema(**schema_data)
+
+    service = BatchExtractionService()
+    try:
+        service.run(notes, schema)
+    except Exception as e:
+        return templates.TemplateResponse(
+            request=request,
+            name="extraction_error.html",
+            context={"errors": [f"Extraction failed: {e}"]},
+        )
+
+    table = service.results_as_table(schema)
+
+    # Persist results in session for downstream review / export
+    request.session["extraction_results"] = [r.model_dump() for r in service.results]
+    request.session["extraction_status"] = service.status.value
+
+    return templates.TemplateResponse(
+        request=request,
+        name="extraction_results.html",
+        context={
+            "table": table,
+            "schema": schema,
+            "note_count": len(notes),
+            "status": service.status.value,
+        },
+    )
+
+
+@router.get("/extraction/results", response_class=HTMLResponse)
+async def extraction_results(request: Request):
+    """Display the most recent extraction results from the session."""
+    results_data = request.session.get("extraction_results")
+    schema_data = request.session.get("schema")
+
+    if not results_data or not schema_data:
+        return templates.TemplateResponse(
+            request=request,
+            name="extraction_error.html",
+            context={
+                "errors": ["No extraction results available. Run an extraction first."]
+            },
+        )
+
+    schema = ExtractionSchema(**schema_data)
+    columns = [field.name for field in schema.fields]
+    rows = []
+    for idx, r in enumerate(results_data):
+        row = {"_note_index": idx + 1}
+        for col in columns:
+            row[col] = r["values"].get(col)
+        rows.append(row)
+
+    table = {"columns": columns, "rows": rows}
+    status = request.session.get("extraction_status", "complete")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="extraction_results.html",
+        context={
+            "table": table,
+            "schema": schema,
+            "note_count": len(results_data),
+            "status": status,
+        },
+    )
