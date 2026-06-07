@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Schema Saved - Notaris{% endblock %}
+
+{% block content %}
+<h2>Schema Configuration Saved</h2>
+<div class="success">Your extraction schema has been defined successfully! This schema will be used for your current demonstration session.</div>
+
+<div class="note-card">
+    <h3>Extracted Fields Definition</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Field Name</th>
+                <th>Description</th>
+                <th>Data Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for field in schema.fields %}
+            <tr>
+                <td><strong>{{ field.name }}</strong></td>
+                <td>{{ field.description }}</td>
+                <td><code>{{ field.type }}</code></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="display: flex; gap: 1rem; margin-top: 2rem;">
+    <form action="/schema/new" method="get">
+        <button type="submit" class="btn" style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">&larr; Edit Schema</button>
+    </form>
+
+    <form action="/extraction/run" method="post">
+        <!-- Next ticket (T-006) goes to /extraction/run -->
+        <button type="submit" class="btn">Run Batch Extraction &rarr;</button>
+    </form>
+</div>
+{% endblock %}

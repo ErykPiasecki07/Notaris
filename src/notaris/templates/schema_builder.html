@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Schema Builder - Notaris{% endblock %}
+
+{% block content %}
+<h2>Define Extraction Schema</h2>
+<p>Define the fields you want to extract from the clinical notes.</p>
+
+{% if errors %}
+<div class="error">
+    <ul>
+        {% for error in errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div id="fields-container">
+    <!-- Fields will be dynamically added here -->
+</div>
+
+<button type="button" class="btn" onclick="addField()" style="background: var(--surface); color: var(--primary); border: 2px dashed var(--primary); width: 100%; margin-bottom: 2rem;">+ Add Field</button>
+
+<form method="post" action="/schema/new">
+    <input type="hidden" name="schema_data" id="schema_data" value="">
+    <div style="display: flex; gap: 1rem;">
+        <a href="/" class="btn" style="background: var(--text-muted); text-decoration: none;">Cancel</a>
+        <button type="submit" onclick="prepareSubmit()" class="btn">Save Schema & Continue</button>
+    </div>
+</form>
+
+<script>
+    const supportedTypes = ['string', 'integer', 'number', 'boolean', 'date'];
+    let fields = [];
+
+    {% if schema and schema.fields %}
+        fields = {{ schema.fields | tojson }};
+    {% else %}
+        fields.push({ name: '', description: '', type: 'string' });
+    {% endif %}
+
+    function renderFields() {
+        const container = document.getElementById('fields-container');
+        container.innerHTML = '';
+
+        fields.forEach((field, index) => {
+            const card = document.createElement('div');
+            card.className = 'note-card';
+            card.style.position = 'relative';
+            card.style.animation = 'fadeIn 0.3s ease-out';
+
+            let optionsHTML = supportedTypes.map(t =>
+                `<option value="${t}" ${field.type === t ? 'selected' : ''}>${t}</option>`
+            ).join('');
+
+            card.innerHTML = `
+                <button type="button" onclick="removeField(${index})" style="position: absolute; right: 1.5rem; top: 1.5rem; background: #fee2e2; color: #dc2626; border: none; padding: 0.4rem 0.8rem; border-radius: var(--radius); cursor: pointer; transition: background 0.2s;">Remove</button>
+                <div class="form-group" style="padding-right: 6rem;">
+                    <label>Field Name</label>
+                    <input type="text" value="${field.name}" onchange="updateField(${index}, 'name', this.value)" placeholder="e.g. primary_diagnosis" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" value="${field.description}" onchange="updateField(${index}, 'description', this.value)" placeholder="e.g. The primary diagnosis condition of the patient." required>
+                </div>
+                <div class="form-group">
+                    <label>Data Type</label>
+                    <select onchange="updateField(${index}, 'type', this.value)">
+                        ${optionsHTML}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Constraints (Optional JSON)</label>
+                    <input type="text" value='${field.constraints ? JSON.stringify(field.constraints) : ""}' onchange="updateConstraint(${index}, this.value)" placeholder='e.g. {"minimum": 18}'>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function addField() {
+        fields.push({ name: '', description: '', type: 'string', constraints: null });
+        renderFields();
+    }
+
+    function removeField(index) {
+        fields.splice(index, 1);
+        renderFields();
+    }
+
+    function updateField(index, key, value) {
+        fields[index][key] = value;
+    }
+
+    function updateConstraint(index, value) {
+        if (!value.trim()) {
+            fields[index].constraints = null;
+            return;
+        }
+        try {
+            fields[index].constraints = JSON.parse(value);
+        } catch (e) {
+            alert('Invalid JSON in constraints.');
+        }
+    }
+
+    function prepareSubmit() {
+        document.getElementById('schema_data').value = JSON.stringify(fields);
+    }
+
+    // Add a simple fade-in animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    renderFields();
+</script>
+{% endblock %}
