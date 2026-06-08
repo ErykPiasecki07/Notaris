@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Provider Settings - Notaris{% endblock %}
+
+{% block content %}
+<h2>Extraction Provider</h2>
+<p>Choose the AI backend used when you run batch extraction. Mock is the default and works offline.</p>
+
+{% if saved %}
+<div class="success">Provider settings saved for this session.</div>
+{% endif %}
+
+<form action="/extraction/provider" method="post">
+    {% include "_provider_selector.html" %}
+    <button type="submit" class="btn">Save Provider Settings</button>
+</form>
+{% endblock %}

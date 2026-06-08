@@ -1,8 +1,9 @@
 """HTTP routes for the Notaris web app."""
 
 import json
+import os
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
@@ -11,6 +12,14 @@ from pydantic import ValidationError
 
 from notaris.domain.models import ClinicalNote, ExtractionResult, ExtractionSchema
 from notaris.domain.parsing import parse_csv_batch, parse_text_batch
+from notaris.providers import (
+    PROVIDER_LABELS,
+    ProviderConfigError,
+    ProviderKind,
+    build_provider,
+    provider_config_from_form,
+    provider_config_from_session,
+)
 from notaris.services.export import export_results_to_csv
 from notaris.services.extraction import BatchExtractionService
 
@@ -18,6 +27,25 @@ router = APIRouter()
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+def _provider_template_context(request: Request) -> dict[str, Any]:
+    """Shared template context for provider selection UI."""
+    session_config = request.session.get("provider_config")
+    provider_config = provider_config_from_session(session_config)
+    return {
+        "provider_config": provider_config,
+        "provider_options": [
+            (kind.value, PROVIDER_LABELS[kind]) for kind in ProviderKind
+        ],
+        "google_api_key_configured": bool(os.getenv("GOOGLE_API_KEY")),
+    }
+
+
+def _save_provider_config(request: Request, **form_values: str | None) -> None:
+    """Persist provider settings for the current demo session."""
+    config = provider_config_from_form(**form_values)
+    request.session["provider_config"] = config.model_dump()
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -116,7 +144,9 @@ async def save_schema(
         # Persist schema data for the current demo session
         request.session["schema"] = schema.model_dump()
         return templates.TemplateResponse(
-            request=request, name="schema_success.html", context={"schema": schema}
+            request=request,
+            name="schema_success.html",
+            context={"schema": schema, **_provider_template_context(request)},
         )
     except ValidationError as e:
         # Pydantic validation errors
@@ -145,8 +175,64 @@ async def save_schema(
         )
 
 
+@router.get("/extraction/provider", response_class=HTMLResponse)
+async def provider_settings_form(request: Request):
+    """Render provider selection settings."""
+    return templates.TemplateResponse(
+        request=request,
+        name="provider_settings.html",
+        context=_provider_template_context(request),
+    )
+
+
+@router.post("/extraction/provider", response_class=HTMLResponse)
+async def save_provider_settings(
+    request: Request,
+    provider: Annotated[Optional[str], Form()] = None,
+    google_api_key: Annotated[Optional[str], Form()] = None,
+    google_model: Annotated[Optional[str], Form()] = None,
+    ollama_model: Annotated[Optional[str], Form()] = None,
+    ollama_base_url: Annotated[Optional[str], Form()] = None,
+):
+    """Save provider settings for the current demo session."""
+    try:
+        _save_provider_config(
+            request,
+            provider=provider,
+            google_api_key=google_api_key,
+            google_model=google_model,
+            ollama_model=ollama_model,
+            ollama_base_url=ollama_base_url,
+        )
+    except ProviderConfigError as exc:
+        return templates.TemplateResponse(
+            request=request,
+            name="provider_settings.html",
+            context={
+                "errors": [str(exc)],
+                **_provider_template_context(request),
+            },
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="provider_settings.html",
+        context={
+            "saved": True,
+            **_provider_template_context(request),
+        },
+    )
+
+
 @router.post("/extraction/run", response_class=HTMLResponse)
-async def run_extraction(request: Request):
+async def run_extraction(
+    request: Request,
+    provider: Annotated[Optional[str], Form()] = None,
+    google_api_key: Annotated[Optional[str], Form()] = None,
+    google_model: Annotated[Optional[str], Form()] = None,
+    ollama_model: Annotated[Optional[str], Form()] = None,
+    ollama_base_url: Annotated[Optional[str], Form()] = None,
+):
     """Run batch extraction using session-stored notes and schema."""
     notes_data = request.session.get("notes")
     schema_data = request.session.get("schema")
@@ -164,10 +250,36 @@ async def run_extraction(request: Request):
             context={"errors": errors},
         )
 
+    try:
+        if provider is not None:
+            _save_provider_config(
+                request,
+                provider=provider,
+                google_api_key=google_api_key,
+                google_model=google_model,
+                ollama_model=ollama_model,
+                ollama_base_url=ollama_base_url,
+            )
+        provider_config = provider_config_from_session(
+            request.session.get("provider_config")
+        )
+        extraction_provider = build_provider(provider_config)
+    except ProviderConfigError as exc:
+        schema = ExtractionSchema(**schema_data)
+        return templates.TemplateResponse(
+            request=request,
+            name="schema_success.html",
+            context={
+                "schema": schema,
+                "errors": [str(exc)],
+                **_provider_template_context(request),
+            },
+        )
+
     notes = [ClinicalNote(**n) for n in notes_data]
     schema = ExtractionSchema(**schema_data)
 
-    service = BatchExtractionService()
+    service = BatchExtractionService(provider=extraction_provider)
     try:
         service.run(notes, schema)
     except Exception as e:
@@ -178,6 +290,8 @@ async def run_extraction(request: Request):
         )
 
     table = service.results_as_table(schema)
+    session_config = request.session.get("provider_config")
+    provider_config = provider_config_from_session(session_config)
 
     # Persist results in session for downstream review / export
     request.session["extraction_results"] = [r.model_dump() for r in service.results]
@@ -191,6 +305,8 @@ async def run_extraction(request: Request):
             "schema": schema,
             "note_count": len(notes),
             "status": service.status.value,
+            "provider_label": PROVIDER_LABELS[provider_config.kind],
+            **_provider_template_context(request),
         },
     )
 
@@ -222,6 +338,9 @@ async def extraction_results(request: Request):
     table = {"columns": columns, "rows": rows}
     status = request.session.get("extraction_status", "complete")
 
+    session_config = request.session.get("provider_config")
+    provider_config = provider_config_from_session(session_config)
+
     return templates.TemplateResponse(
         request=request,
         name="extraction_results.html",
@@ -230,6 +349,8 @@ async def extraction_results(request: Request):
             "schema": schema,
             "note_count": len(results_data),
             "status": status,
+            "provider_label": PROVIDER_LABELS[provider_config.kind],
+            **_provider_template_context(request),
         },
     )
 

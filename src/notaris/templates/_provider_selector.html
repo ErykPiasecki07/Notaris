@@ -1,0 +1,87 @@
+<fieldset class="provider-settings">
+    <legend>Extraction Provider</legend>
+    <p class="provider-help">
+        Choose how notes are extracted. Mock works offline with no API keys.
+        Google AI needs a Gemini API key. Ollama needs a local Ollama server.
+    </p>
+
+    <div class="form-group">
+        <label for="provider">Provider</label>
+        <select name="provider" id="provider">
+            {% for kind, label in provider_options %}
+            <option value="{{ kind }}" {% if provider_config.kind.value == kind %}selected{% endif %}>
+                {{ label }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="provider-fields provider-fields-google">
+        <div class="form-group">
+            <label for="google_api_key">Google API Key</label>
+            <input
+                type="password"
+                name="google_api_key"
+                id="google_api_key"
+                placeholder="{% if google_api_key_configured %}Configured via environment{% else %}Enter Gemini API key{% endif %}"
+                autocomplete="off"
+            >
+            <p class="field-hint">
+                Optional if <code>GOOGLE_API_KEY</code> is set in the environment.
+            </p>
+        </div>
+        <div class="form-group">
+            <label for="google_model">Google Model</label>
+            <input
+                type="text"
+                name="google_model"
+                id="google_model"
+                value="{{ provider_config.google_model }}"
+            >
+        </div>
+    </div>
+
+    <div class="provider-fields provider-fields-ollama">
+        <div class="form-group">
+            <label for="ollama_model">Ollama Model</label>
+            <input
+                type="text"
+                name="ollama_model"
+                id="ollama_model"
+                value="{{ provider_config.ollama_model }}"
+            >
+        </div>
+        <div class="form-group">
+            <label for="ollama_base_url">Ollama Base URL</label>
+            <input
+                type="text"
+                name="ollama_base_url"
+                id="ollama_base_url"
+                value="{{ provider_config.ollama_base_url }}"
+            >
+        </div>
+    </div>
+</fieldset>
+
+<script>
+(function () {
+    const providerSelect = document.getElementById("provider");
+    if (!providerSelect) return;
+
+    const googleFields = document.querySelector(".provider-fields-google");
+    const ollamaFields = document.querySelector(".provider-fields-ollama");
+
+    function updateProviderFields() {
+        const selected = providerSelect.value;
+        if (googleFields) {
+            googleFields.style.display = selected === "google" ? "block" : "none";
+        }
+        if (ollamaFields) {
+            ollamaFields.style.display = selected === "ollama" ? "block" : "none";
+        }
+    }
+
+    providerSelect.addEventListener("change", updateProviderFields);
+    updateProviderFields();
+})();
+</script>
