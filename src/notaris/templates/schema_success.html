@@ -28,14 +28,12 @@
     </table>
 </div>
 
-<div style="display: flex; gap: 1rem; margin-top: 2rem;">
-    <form action="/schema/new" method="get">
-        <button type="submit" class="btn" style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">&larr; Edit Schema</button>
-    </form>
+<form action="/extraction/run" method="post" class="run-extraction-form">
+    {% include "_provider_selector.html" %}
 
-    <form action="/extraction/run" method="post">
-        <!-- Next ticket (T-006) goes to /extraction/run -->
+    <div class="results-actions">
+        <a href="/schema/new" class="btn btn-secondary">&larr; Edit Schema</a>
         <button type="submit" class="btn">Run Batch Extraction &rarr;</button>
-    </form>
-</div>
+    </div>
+</form>
 {% endblock %}

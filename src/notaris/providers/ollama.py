@@ -8,11 +8,16 @@ from urllib.request import Request, urlopen
 
 from notaris.domain import ClinicalNote, ExtractionResult, ExtractionSchema
 from notaris.providers.base import BaseExtractionProvider
+from notaris.providers.llm import (
+    LLMProviderError,
+    build_extraction_prompt,
+    build_extraction_result,
+)
 
 HttpPost = Callable[[str, Mapping[str, Any], float], Mapping[str, Any]]
 
 
-class OllamaProviderError(RuntimeError):
+class OllamaProviderError(LLMProviderError):
     """Raised when Ollama extraction cannot complete cleanly."""
 
 
@@ -41,7 +46,7 @@ class OllamaProvider(BaseExtractionProvider):
     ) -> ExtractionResult:
         payload = {
             "model": self.model,
-            "prompt": self._build_prompt(note, schema),
+            "prompt": build_extraction_prompt(note, schema),
             "stream": False,
             "format": "json",
         }
@@ -50,51 +55,14 @@ class OllamaProvider(BaseExtractionProvider):
             payload,
             self.timeout,
         )
-        values = self._parse_response(response, schema)
-        return ExtractionResult(note=note, values=values)
-
-    def _build_prompt(self, note: ClinicalNote, schema: ExtractionSchema) -> str:
-        fields = [
-            {
-                "name": field.name,
-                "description": field.description,
-                "type": field.type,
-                "constraints": field.constraints,
-            }
-            for field in schema.fields
-        ]
-        return (
-            "Extract structured research values from the clinical note. "
-            "Return only JSON with a top-level object named values. "
-            "The values object must include exactly the requested field names. "
-            "Use null when a value is not present.\n\n"
-            f"Fields:\n{json.dumps(fields, indent=2)}\n\n"
-            f"Clinical note:\n{note.source_text}"
-        )
-
-    def _parse_response(
-        self,
-        response: Mapping[str, Any],
-        schema: ExtractionSchema,
-    ) -> dict[str, Any]:
         raw_content = response.get("response")
         if not isinstance(raw_content, str):
             raise OllamaProviderError("Ollama response did not include text content")
 
         try:
-            parsed = json.loads(raw_content)
-        except json.JSONDecodeError as exc:
-            raise OllamaProviderError("Ollama response was not valid JSON") from exc
-
-        if not isinstance(parsed, dict):
-            raise OllamaProviderError("Ollama JSON response must be an object")
-
-        raw_values = parsed.get("values", parsed)
-        if not isinstance(raw_values, dict):
-            raise OllamaProviderError("Ollama values payload must be an object")
-
-        requested_names = [field.name for field in schema.fields]
-        return {name: raw_values.get(name) for name in requested_names}
+            return build_extraction_result(note, raw_content, schema)
+        except LLMProviderError as exc:
+            raise OllamaProviderError(str(exc)) from exc
 
 
 def _post_json(

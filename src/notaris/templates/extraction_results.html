@@ -10,6 +10,10 @@
         <span class="results-count">{{ note_count }} note{{ "s" if note_count != 1 else "" }} processed</span>
         <span class="results-separator">&bull;</span>
         <span class="results-count">{{ schema.fields|length }} field{{ "s" if schema.fields|length != 1 else "" }} extracted</span>
+        {% if provider_label %}
+        <span class="results-separator">&bull;</span>
+        <span class="results-count">Provider: {{ provider_label }}</span>
+        {% endif %}
     </div>
 </div>
 
@@ -46,12 +50,15 @@
     </table>
 </div>
 
-<div class="results-actions">
-    <a href="/extraction/export" class="btn">Download CSV</a>
-    <a href="/notes/batch" class="btn btn-secondary">&larr; New Notes</a>
-    <a href="/schema/new" class="btn btn-secondary">Edit Schema</a>
-    <form action="/extraction/run" method="post" class="inline-form">
+<form action="/extraction/run" method="post" class="run-extraction-form">
+    {% include "_provider_selector.html" %}
+
+    <div class="results-actions">
+        <a href="/extraction/export" class="btn">Download CSV</a>
+        <a href="/notes/batch" class="btn btn-secondary">&larr; New Notes</a>
+        <a href="/schema/new" class="btn btn-secondary">Edit Schema</a>
+        <a href="/extraction/provider" class="btn btn-secondary">Provider Settings</a>
         <button type="submit" class="btn">Re-run Extraction &#x21bb;</button>
-    </form>
-</div>
+    </div>
+</form>
 {% endblock %}

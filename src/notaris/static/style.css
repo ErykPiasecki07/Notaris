@@ -263,3 +263,29 @@ tr:last-child td { border-bottom: none; }
     gap: 1rem;
     margin-top: 2rem;
 }
+
+/* Provider settings */
+.provider-settings {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    background: var(--surface);
+}
+.provider-settings legend {
+    font-weight: 600;
+    padding: 0 0.5rem;
+}
+.provider-help,
+.field-hint {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 0;
+}
+.field-hint {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+.run-extraction-form {
+    margin-top: 2rem;
+}
