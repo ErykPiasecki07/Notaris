@@ -5,12 +5,13 @@ from pathlib import Path
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from notaris.domain.models import ClinicalNote, ExtractionSchema
+from notaris.domain.models import ClinicalNote, ExtractionResult, ExtractionSchema
 from notaris.domain.parsing import parse_csv_batch, parse_text_batch
+from notaris.services.export import export_results_to_csv
 from notaris.services.extraction import BatchExtractionService
 
 router = APIRouter()
@@ -229,5 +230,33 @@ async def extraction_results(request: Request):
             "schema": schema,
             "note_count": len(results_data),
             "status": status,
+        },
+    )
+
+
+@router.get("/extraction/export")
+async def export_extraction_results(request: Request):
+    """Download extraction results as a CSV file."""
+    results_data = request.session.get("extraction_results")
+    schema_data = request.session.get("schema")
+
+    if not results_data or not schema_data:
+        return templates.TemplateResponse(
+            request=request,
+            name="extraction_error.html",
+            context={
+                "errors": ["No extraction results available. Run an extraction first."]
+            },
+        )
+
+    schema = ExtractionSchema(**schema_data)
+    results = [ExtractionResult(**r) for r in results_data]
+    csv_content = export_results_to_csv(results, schema)
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": 'attachment; filename="extraction_results.csv"'
         },
     )
